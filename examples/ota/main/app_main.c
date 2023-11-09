@@ -33,9 +33,10 @@ static size_t app_firmware_download(const char *url)
 
     esp_err_t ret       = ESP_OK;
     esp_ota_handle_t ota_handle = 0;
-    uint8_t *data       = ESP_MALLOC(OTA_DATA_PAYLOAD_LEN);
+    uint8_t *data       = (uint8_t*) ESP_MALLOC(OTA_DATA_PAYLOAD_LEN);
     size_t total_size   = 0;
     uint32_t start_time = xTaskGetTickCount();
+    const esp_partition_t *update_partition = 0;
 
     esp_http_client_config_t config = {
         .url            = url,
@@ -77,9 +78,9 @@ static size_t app_firmware_download(const char *url)
      * @brief 2. Read firmware from the server and write it to the flash of the root node
      */
 
-    const esp_partition_t *updata_partition = esp_ota_get_next_update_partition(NULL);
+    update_partition = esp_ota_get_next_update_partition(NULL);
     /**< Commence an OTA update writing to the specified partition. */
-    ret = esp_ota_begin(updata_partition, total_size, &ota_handle);
+    ret = esp_ota_begin(update_partition, total_size, &ota_handle);
     ESP_ERROR_GOTO(ret != ESP_OK, EXIT, "<%s> esp_ota_begin failed, total_size", esp_err_to_name(ret));
 
     for (ssize_t size = 0, recv_size = 0; recv_size < total_size; recv_size += size) {
@@ -138,7 +139,7 @@ static void app_firmware_send(size_t firmware_size, uint8_t sha[ESPNOW_OTA_HASH_
         goto EXIT;
     }
 
-    dest_addr_list = ESP_MALLOC(num * ESPNOW_ADDR_LEN);
+    dest_addr_list = (espnow_addr_t *) ESP_MALLOC(num * ESPNOW_ADDR_LEN);
 
     for (size_t i = 0; i < num; i++) {
         memcpy(dest_addr_list[i], info_list[i].mac, ESPNOW_ADDR_LEN);
